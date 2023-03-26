@@ -1,16 +1,12 @@
-// import React from 'react';
-// import { useDispatch, useSelector } from 'react-redux';
-// import { addContact, deleteContact, filterContact } from 'redux/sliceContacts';
-// import { ContactList } from './ContactList/ContactList';
-// import Container from './Container/Container';
-// import Filter from './Filter/Filter';
-// import { Form } from './Form/Form';
+import { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { addNewContacts, fetchContacts, deleteApiContact } from 'redux/thanks';
+
 import { Form } from './Form/Form';
 import { ContactList } from './ContactList/ContactList';
 import Filter from './Filter/Filter';
 import Container from './Container/Container';
-import { addContact, deleteContact, filterContact } from 'redux/index';
+import { filterContact } from 'redux/index';
 
 const App = () => {
   const dispatch = useDispatch();
@@ -18,7 +14,7 @@ const App = () => {
   const { contacts, filter } = useSelector(state => state);
 
   const isDuplicate = name => {
-    return contacts.find(contact => contact.name === name);
+    return contacts.items.find(contact => contact.name === name);
   };
 
   const onHandleSubmit = data => {
@@ -26,18 +22,22 @@ const App = () => {
       alert(`this ${data.name} is already in your contacts!`);
       return;
     }
-    dispatch(addContact(data));
+    console.log(data);
+    dispatch(addNewContacts(data));
   };
+  useEffect(() => {
+    dispatch(fetchContacts());
+  }, [dispatch]);
 
   const onDeleteContact = id => {
-    dispatch(deleteContact(id));
+    dispatch(deleteApiContact(id));
   };
 
   const toFilteInput = e => {
     dispatch(filterContact(e.currentTarget.value));
   };
 
-  const filteredContact = contacts.filter(contact =>
+  const filteredContact = contacts.items.filter(contact =>
     contact.name.toLowerCase().includes(filter)
   );
 
@@ -51,4 +51,5 @@ const App = () => {
     </Container>
   );
 };
+
 export default App;

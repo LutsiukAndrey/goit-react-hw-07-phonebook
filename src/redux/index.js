@@ -1,71 +1,88 @@
 import { combineReducers, configureStore, createSlice } from '@reduxjs/toolkit';
-import {
-  persistStore,
-  persistReducer,
-  FLUSH,
-  REHYDRATE,
-  PAUSE,
-  PERSIST,
-  PURGE,
-  REGISTER,
-} from 'redux-persist';
-import storage from 'redux-persist/lib/storage';
 
-const persistConfig = {
-  key: 'contacts',
-  storage,
-};
+import { addNewContacts, fetchContacts, deleteApiContact } from './thanks';
 
 export const contactSlice = createSlice({
-  name: 'contacts',
+  name: '@@contacts',
   initialState: {
-    contacts: [
-      { id: 'id-1', name: 'Rosie Simpson', number: '459-12-56' },
-      { id: 'id-2', name: 'Hermione Kline', number: '443-89-12' },
-      { id: 'id-3', name: 'Eden Clements', number: '645-17-79' },
-      { id: 'id-4', name: 'Annie Copeland', number: '227-91-26' },
-    ],
+    contacts: {
+      items: [],
+      error: null,
+      loading: false,
+    },
 
     filter: '',
   },
 
   reducers: {
     addContact(state, action) {
-      state.contacts.push(action.payload);
+      state.contacts.items.push(action.payload);
+    },
+    loadContacts(state, action) {
+      state.contacts.items = action.payload;
     },
 
     deleteContact(state, action) {
-      const index = state.contacts.findIndex(
+      const index = state.contacts.items.findIndex(
         contact => contact.id === action.payload
       );
-      state.contacts.splice(index, 1);
+      console.log(index);
+      state.contacts.items.splice(index, 1);
     },
 
     filterContact(state, action) {
       state.filter = action.payload;
     },
   },
+
+  extraReducers: builder => {
+    builder
+      .addCase(fetchContacts.fulfilled, (state, action) => {
+        state.contacts.items = action.payload;
+      })
+      .addCase(addNewContacts.fulfilled, (state, action) => {
+        state.contacts.items.unshift(action.payload);
+      })
+      .addCase(deleteApiContact.fulfilled, (state, action) => {
+        const index = state.contacts.items.findIndex(
+          contact => contact.id === action.payload.id
+        );
+        state.contacts.items.splice(index, 1);
+      })
+      .addMatcher(
+        action => action.type.endsWith('/pending'),
+        (state, action) => {
+          state.loading = true;
+          state.error = null;
+        }
+      )
+      .addMatcher(
+        action => action.type.endsWith('/rejected'),
+        (state, action) => {
+          state.loading = false;
+          state.error = action.payload;
+        }
+      )
+      .addMatcher(
+        action => action.type.endsWith('/fulfilled'),
+        state => {
+          state.loading = false;
+          state.error = null;
+        }
+      );
+  },
 });
 
-export const { addContact, filterContact, deleteContact } =
+export const { loadContacts, addContact, filterContact, deleteContact } =
   contactSlice.actions;
 
 export const contactReducer = contactSlice.reducer;
 
-const persistedReducer = persistReducer(persistConfig, contactReducer);
 export const rootReducer = combineReducers({
   contacts: contactReducer,
 });
 
 export const store = configureStore({
-  reducer: persistedReducer,
+  reducer: contactReducer,
   devTools: process.env.NODE_ENV !== 'production',
-  middleware: getDefaultMiddleware =>
-    getDefaultMiddleware({
-      serializableCheck: {
-        ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
-      },
-    }),
 });
-
-export const persistor = persistStore(store);
